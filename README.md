@@ -72,6 +72,25 @@ Traditional freelancing or microtask platforms often:
 
 ---
 
+## 📸 Screenshots
+
+Here’s a preview of the **AlgoBounty Dashboard** in action:
+
+<p align="center">
+  <img src="./ea5fc345-aa5e-43cc-bd51-9e311a5eab33.png" alt="AlgoBounty Dashboard Screenshot" width="80%">
+</p>
+
+This dashboard provides users with a summary of their bounty activity on the Algorand blockchain, including:
+- Wallet info and total rewards earned.
+- Number of completed tasks and active claims.
+- Available bounties with details like payout, category, and deadline.
+- Section for active tasks and DeFi earning opportunities.
+
+Users can easily browse and post tasks, view posted and claimed bounties, and manage their activity all in one place.
+
+---
+
+
 ## 🧪 Functional Modules
 
 | **Module**   | **Functionality**                               |
