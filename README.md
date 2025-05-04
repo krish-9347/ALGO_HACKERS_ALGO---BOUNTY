@@ -106,7 +106,7 @@ cd AlgoBounty
 
 **Install frontend dependencies:**
 
-'npm install'
+`npm install`
 
 **Build and deploy smart contracts using AlgoKit:**
 
