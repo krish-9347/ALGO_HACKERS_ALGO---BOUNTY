@@ -97,28 +97,28 @@ Before running the project locally, ensure you have:
 
 ---
 
-Installation Steps
+**Installation Steps**
 
-Clone the repository:
+**Clone the repository:**
 
 git clone https://github.com/your-username/AlgoBounty.git
 cd AlgoBounty
 
-Install frontend dependencies:
+**Install frontend dependencies:**
 
 npm install
 
-Build and deploy smart contracts using AlgoKit:
+**Build and deploy smart contracts using AlgoKit:**
 
 algokit project run build
 
-Start the development server:
+**Start the development server:**
 
 npm run dev
 
 Visit http://localhost:3000 to view the running dApp.
 
-License
+**License**
 
 This project is licensed under the MIT License.
 
