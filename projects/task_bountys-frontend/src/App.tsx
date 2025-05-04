@@ -1,56 +1,42 @@
-import { SupportedWallet, WalletId, WalletManager, WalletProvider } from '@txnlab/use-wallet-react'
-import { SnackbarProvider } from 'notistack'
-import Home from './Home'
-import { getAlgodConfigFromViteEnvironment, getKmdConfigFromViteEnvironment } from './utils/network/getAlgoClientConfigs'
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { WalletProvider } from './context/WalletContext';
+import { TaskProvider } from './context/TaskContext';
 
-let supportedWallets: SupportedWallet[]
-if (import.meta.env.VITE_ALGOD_NETWORK === 'localnet') {
-  const kmdConfig = getKmdConfigFromViteEnvironment()
-  supportedWallets = [
-    {
-      id: WalletId.KMD,
-      options: {
-        baseServer: kmdConfig.server,
-        token: String(kmdConfig.token),
-        port: String(kmdConfig.port),
-      },
-    },
-  ]
-} else {
-  supportedWallets = [
-    { id: WalletId.DEFLY },
-    { id: WalletId.PERA },
-    { id: WalletId.EXODUS },
-    // If you are interested in WalletConnect v2 provider
-    // refer to https://github.com/TxnLab/use-wallet for detailed integration instructions
-  ]
-}
+// Pages
+import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import PostTask from './pages/PostTask';
+import BrowseTasks from './pages/BrowseTasks';
+import TaskDetail from './pages/TaskDetail';
+import MyTasks from './pages/MyTasks';
+import TaskSubmission from './pages/TaskSubmission';
+import DAOVoting from './pages/DAOVoting';
+import DeFi from './pages/DeFi';
+import ViewPostTasks from './pages/ViewPostTasks'; // Added ViewPostTasks page
 
-export default function App() {
-  const algodConfig = getAlgodConfigFromViteEnvironment()
-
-  const walletManager = new WalletManager({
-    wallets: supportedWallets,
-    defaultNetwork: algodConfig.network,
-    networks: {
-      [algodConfig.network]: {
-        algod: {
-          baseServer: algodConfig.server,
-          port: algodConfig.port,
-          token: String(algodConfig.token),
-        },
-      },
-    },
-    options: {
-      resetNetwork: true,
-    },
-  })
-
+function App() {
   return (
-    <SnackbarProvider maxSnack={3}>
-      <WalletProvider manager={walletManager}>
-        <Home />
-      </WalletProvider>
-    </SnackbarProvider>
-  )
+    <WalletProvider>
+      <TaskProvider>
+        <Router>
+          <Routes>
+            <Route path="/" element={<Login />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/post" element={<PostTask />} />
+            <Route path="/tasks" element={<BrowseTasks />} />
+            <Route path="/tasks/:id" element={<TaskDetail />} />
+            <Route path="/my-tasks" element={<MyTasks />} />
+            <Route path="/my-tasks/:id" element={<TaskSubmission />} />
+            <Route path="/ViewPostTasks" element={<ViewPostTasks />} /> {/* Added route for ViewPostTasks */}
+            <Route path="/voting" element={<DAOVoting />} />
+            <Route path="/defi" element={<DeFi />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Router>
+      </TaskProvider>
+    </WalletProvider>
+  );
 }
+
+export default App;
