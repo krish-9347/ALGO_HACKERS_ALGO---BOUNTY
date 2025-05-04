@@ -77,7 +77,7 @@ Traditional freelancing or microtask platforms often:
 Here’s a preview of the **AlgoBounty Dashboard** in action:
 
 <p align="center">
-  <img src="./ea5fc345-aa5e-43cc-bd51-9e311a5eab33.png" alt="AlgoBounty Dashboard Screenshot" width="80%">
+  <img src="./projects/task_bountys-frontend/public/Task Bounty Dashboard.png" alt="AlgoBounty Dashboard Screenshot" width="80%">
 </p>
 
 This dashboard provides users with a summary of their bounty activity on the Algorand blockchain, including:
