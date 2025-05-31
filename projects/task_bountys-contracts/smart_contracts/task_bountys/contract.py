@@ -139,6 +139,15 @@ class TaskBounty(arc4.ARC4Contract):
         ).submit()
 
     @arc4.abimethod
+    def auto_reopen(self) -> None:
+        assert self.task_status in [UInt64(1), UInt64(2)]
+        assert Global.latest_timestamp > self.deadline
+    
+        self.task_claimer = arc4.Address("")
+        self.task_quantity = UInt64(0)
+        self.task_status = UInt64(0)
+
+    @arc4.abimethod
     def dispute_task(self) -> None:
         # Anyone can raise a dispute if the task is submitted
         assert self.task_status == UInt64(2), "Task not submitted"
