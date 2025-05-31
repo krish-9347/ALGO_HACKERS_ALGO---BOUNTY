@@ -280,6 +280,17 @@ def get_user_asset_balance(self, user: arc4.Address) -> UInt64:
     return user.asset_holding(self.asset_id).amount
 
 
+@arc4.abimethod
+def withdraw_assets(self, amount: UInt64) -> None:
+    assert Txn.sender == Global.creator_address, "Unauthorized"
+
+    itxn.AssetTransfer(
+        xfer_asset=self.asset_id,
+        asset_receiver=Global.creator_address,
+        asset_amount=amount
+    ).submit()
+
+
 
     @arc4.abimethod(
         # This method is called when the application is deleted
