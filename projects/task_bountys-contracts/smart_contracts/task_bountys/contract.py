@@ -66,6 +66,13 @@ class TaskBounty(arc4.ARC4Contract):
         self.task_claimer = abi.StaticBytes[Address]()  # clear claimer
         self.task_quantity = UInt64(0)
 
+   
+
+    @arc4.abimethod
+    def set_deadline(self, new_deadline: UInt64) -> None:
+        assert Txn.sender == Global.creator_address, "Only creator can set deadline"
+        self.deadline = new_deadline
+
 
     @arc4.abimethod
     def set_price(self, unitary_price: UInt64) -> None:
