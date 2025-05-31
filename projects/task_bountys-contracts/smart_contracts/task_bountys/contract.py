@@ -82,6 +82,16 @@ class TaskBounty(arc4.ARC4Contract):
         self.task_quantity = UInt64(0)
         self.task_status = UInt64(0)
 
+    @arc4.abimethod
+    def auto_reopen_if_failed(self) -> None:
+        """Automatically reopens a task if deadline has passed and it's not completed."""
+        assert self.task_status == UInt64(1), "Task is not in progress"
+        assert Global.latest_timestamp > self.deadline, "Deadline not passed yet"
+    
+        self.task_status = UInt64(0)  # Back to 'Available'
+        self.task_claimer = arc4.Address("")  # Reset claimer
+        self.task_quantity = UInt64(0)  # Reset quantity if used
+
 
     @arc4.abimethod
     def set_price(self, unitary_price: UInt64) -> None:
