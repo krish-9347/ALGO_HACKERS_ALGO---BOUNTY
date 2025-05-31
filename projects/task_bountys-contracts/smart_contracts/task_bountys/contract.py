@@ -111,6 +111,11 @@ class TaskBounty(arc4.ARC4Contract):
             asset_amount=quantity,
         ).submit()
 
+
+ @arc4.abimethod
+ def get_price(self) -> UInt64:
+    return self.unitary_price
+
     @arc4.abimethod(
         # This method is called when the application is deleted
         allow_actions=["DeleteApplication"]
