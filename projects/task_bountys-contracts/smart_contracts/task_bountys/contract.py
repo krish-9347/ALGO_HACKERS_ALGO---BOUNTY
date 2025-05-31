@@ -73,6 +73,15 @@ class TaskBounty(arc4.ARC4Contract):
         assert Txn.sender == Global.creator_address, "Only creator can set deadline"
         self.deadline = new_deadline
 
+    @arc4.abimethod
+    def auto_reopen(self) -> None:
+        assert self.task_status in [UInt64(1), UInt64(2)]
+        assert Global.latest_timestamp > self.deadline
+    
+        self.task_claimer = arc4.Address("")
+        self.task_quantity = UInt64(0)
+        self.task_status = UInt64(0)
+
 
     @arc4.abimethod
     def set_price(self, unitary_price: UInt64) -> None:
