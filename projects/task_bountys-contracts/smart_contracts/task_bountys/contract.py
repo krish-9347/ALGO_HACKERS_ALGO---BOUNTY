@@ -215,10 +215,26 @@ class TaskBounty(arc4.ARC4Contract):
         assert Txn.sender == self.task_claimer or Txn.sender == Global.creator_address, "Only claimer or creator can         dispute"
         self.task_status = UInt64(4)  # disputed
 
+    
+    @arc4.abimethod
+    def get_algo_balance(self) -> UInt64:
+        return Global.current_application_address.balance()
 
 @arc4.abimethod
-def get_algo_balance(self) -> UInt64:
-    return Global.current_application_address.balance()
+def claim_task(self, quantity: UInt64, escrow_payment: gtxn.PaymentTransaction) -> None:
+    # Task must be open
+    assert self.task_status == UInt64(0), "Task not open"
+
+    # Escrow payment must be sent by claimer to app address, equal to reward amount
+    assert escrow_payment.sender == Txn.sender, "Escrow payment sender mismatch"
+    assert escrow_payment.receiver == Global.current_application_address, "Escrow payment must go to app"
+    assert escrow_payment.amount == self.unitary_price * quantity, "Incorrect escrow payment amount"
+
+    # Lock the reward in escrow by receiving ALGO payment to app account
+    self.task_claimer = Txn.sender
+    self.task_quantity = quantity
+    self.task_status = UInt64(1)  # claimed
+
 
 @arc4.abimethod
 def get_user_asset_balance(self, user: arc4.Address) -> UInt64:
