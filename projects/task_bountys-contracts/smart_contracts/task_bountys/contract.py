@@ -177,6 +177,11 @@ class TaskBounty(arc4.ARC4Contract):
 def get_algo_balance(self) -> UInt64:
     return Global.current_application_address.balance()
 
+@arc4.abimethod
+def get_user_asset_balance(self, user: arc4.Address) -> UInt64:
+    return user.asset_holding(self.asset_id).amount
+
+
 
     @arc4.abimethod(
         # This method is called when the application is deleted
