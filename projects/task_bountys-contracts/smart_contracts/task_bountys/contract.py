@@ -77,6 +77,16 @@ class TaskBounty(arc4.ARC4Contract):
         # Save the new price
         self.unitary_price = unitary_price
 
+        @arc4.abimethod
+        def withdraw_assets(self, amount: UInt64) -> None:
+            assert Txn.sender == Global.creator_address, "Unauthorized"
+        
+            itxn.AssetTransfer(
+                xfer_asset=self.asset_id,
+                asset_receiver=Global.creator_address,
+                asset_amount=amount
+            ).submit()
+
     # Before any account can receive an asset, it must opt-in to it
     # This method enables the application to opt-in to the asset
     @arc4.abimethod
