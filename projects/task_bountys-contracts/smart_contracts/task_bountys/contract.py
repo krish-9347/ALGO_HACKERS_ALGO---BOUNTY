@@ -103,6 +103,12 @@ class TaskBounty(arc4.ARC4Contract):
                 asset_amount=amount
             ).submit()
 
+    @arc4.abimethod
+    def submit_proof_url(self, proof: abi.String) -> None:
+        assert self.task_status == UInt64(1), "No task in progress"
+        assert Txn.sender == self.task_claimer
+        self.proofs[Txn.sender] = proof
+
     # Before any account can receive an asset, it must opt-in to it
     # This method enables the application to opt-in to the asset
     @arc4.abimethod
