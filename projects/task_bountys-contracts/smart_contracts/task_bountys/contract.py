@@ -420,6 +420,24 @@ def get_task_summary(task_id: abi.String, *, output: abi.Tuple3[abi.String, abi.
         App.globalGet(task_id_with_prefix(Bytes("creator_"), task_id.get())),
     )
 
+
+    @external
+def list_disputed_tasks(*, output: abi.DynamicArray[abi.String]) -> Expr:
+    i = ScratchVar(TealType.uint64)
+    results = ScratchVar(TealType.bytes)
+    return Seq(
+        output.set([
+            App.globalGet(Bytes("dispute_0")),
+            App.globalGet(Bytes("dispute_1")),
+            App.globalGet(Bytes("dispute_2")),
+            App.globalGet(Bytes("dispute_3")),
+            App.globalGet(Bytes("dispute_4"))
+        ]),
+    )
+
+
+
+    
     
     @arc4.abimethod(
         # This method is called when the application is deleted
