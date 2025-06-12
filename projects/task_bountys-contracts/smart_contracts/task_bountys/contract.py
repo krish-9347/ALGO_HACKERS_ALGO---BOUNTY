@@ -388,6 +388,14 @@ def has_quorum(self, total_votes: UInt64, quorum_threshold: UInt64) -> bool:
     return total_votes >= quorum_threshold
 
 
+@arc4.abimethod
+def calculate_penalty(self, actual_submit_time: UInt64) -> UInt64:
+    penalty = If(
+        actual_submit_time > self.deadline,
+        (actual_submit_time - self.deadline) * Int(10_000),  # e.g., 0.01 ALGO/sec
+        Int(0)
+    )
+    return penalty
 
     
     @arc4.abimethod(
