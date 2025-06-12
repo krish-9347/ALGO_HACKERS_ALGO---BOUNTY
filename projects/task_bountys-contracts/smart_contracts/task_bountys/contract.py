@@ -221,7 +221,22 @@ def set_price(self, unitary_price: UInt64) -> None:
             # Reject task, reset to open for reassignment or cancellation
             self.task_status = UInt64(0)  # open
             
+@arc4.abimethod
+def claim_task(self, quantity: UInt64, escrow_payment: gtxn.PaymentTransaction) -> None:
+    # Task must be open
+    assert self.task_status == UInt64(0), "Task not open"
 
+    # Escrow payment must be sent by claimer to app address, equal to reward amount
+    assert escrow_payment.sender == Txn.sender, "Escrow payment sender mismatch"
+    assert escrow_payment.receiver == Global.current_application_address, "Escrow payment must go to app"
+    assert escrow_payment.amount == self.unitary_price * quantity, "Incorrect escrow payment amount"
+
+    # Lock the reward in escrow by receiving ALGO payment to app account
+    self.task_claimer = Txn.sender
+    self.task_quantity = quantity
+    self.task_status = UInt64(1)  # claimed
+
+    
 
     
 
