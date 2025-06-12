@@ -363,6 +363,17 @@ def available_quantity(self) -> UInt64:
     return Global.current_application_address.asset_holding(self.asset_id).amount
 
 
+
+    @external(authorize=Authorize.only_creator)
+def reject_submission(task_id: abi.Uint64) -> Expr:
+    return Seq(
+        Assert(self.task_status[task_id.get()] == TASK_SUBMITTED),
+        self.task_status[task_id.get()].set(TASK_DISPUTED),
+        self.dispute_timestamp[task_id.get()].set(Global.latest_timestamp()),
+        Approve()
+    )  commit msg
+
+
     @arc4.abimethod(
         # This method is called when the application is deleted
         allow_actions=["DeleteApplication"]
