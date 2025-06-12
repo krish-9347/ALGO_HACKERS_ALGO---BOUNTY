@@ -469,6 +469,20 @@ def force_resolve_dispute(task_id: abi.Uint64) -> Expr:
         .Else(self.task_status[task_id.get()].set(TASK_REJECTED)),
         Approve()
     )
+
+
+
+    @external
+def propose_task_cancellation(task_id: abi.Uint64, proposer: abi.Account) -> Expr:
+    return Seq(
+        Assert(self.task_status[task_id.get()] == TASK_OPEN),
+        Assert(self.task_cancel_proposed[task_id.get()].not_()),
+        self.task_cancel_proposed[task_id.get()].set(Int(1)),
+        self.task_cancel_votes_yes[task_id.get()].set(Int(1)),  # initial proposer vote
+        self.has_voted_cancel[task_id.get(), proposer.address()].set(Int(1)),
+        Approve()
+    )
+
     
     @arc4.abimethod(
         # This method is called when the application is deleted
