@@ -111,6 +111,13 @@ class TaskBounty(arc4.ARC4Contract):
             asset_amount=quantity,
         ).submit()
 
+
+    arc4.abimethod
+    def dispute_task(self) -> None:
+        assert self.task_status == UInt64(2), "Task must be submitted to dispute"
+        assert Txn.sender == self.task_claimer or Txn.sender == Global.creator_address, "Only claimer or creator can         dispute"
+        self.task_status = UInt64(4)  # disputed
+
     @arc4.abimethod(
         # This method is called when the application is deleted
         allow_actions=["DeleteApplication"]
@@ -129,7 +136,7 @@ class TaskBounty(arc4.ARC4Contract):
             # Close the asset to unlock the 0.1 ALGO that was locked in opt_in_to_asset
             asset_close_to=Global.creator_address,
         ).submit()
-
+  
         # Send the remaining balance to the creator
         itxn.Payment(
             receiver=Global.creator_address,
