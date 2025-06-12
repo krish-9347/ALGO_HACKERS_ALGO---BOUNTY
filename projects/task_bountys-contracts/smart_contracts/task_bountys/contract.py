@@ -341,7 +341,18 @@ def submit_proof_url(self, proof: abi.String) -> None:
     assert self.task_status == UInt64(1), "No task in progress"
     assert Txn.sender == self.task_claimer
     self.proofs[Txn.sender] = proof
-    
+
+
+
+@arc4.abimethod
+def auto_reopen_if_failed(self) -> None:
+    """Automatically reopens a task if deadline has passed and it's not completed."""
+    assert self.task_status == UInt64(1), "Task is not in progress"
+    assert Global.latest_timestamp > self.deadline, "Deadline not passed yet"
+
+    self.task_status = UInt64(0)  # Back to 'Available'
+    self.task_claimer = arc4.Address("")  # Reset claimer
+    self.task_quantity = UInt64(0)  # Reset quantity if used
     
 
     @arc4.abimethod(
