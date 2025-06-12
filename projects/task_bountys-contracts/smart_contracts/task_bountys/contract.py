@@ -449,7 +449,14 @@ def extend_deadline(task_id: abi.Uint64, new_deadline: abi.Uint64) -> Expr:
         Approve()
     )
 
-    
+    @external(authorize=Authorize.only_creator)
+def reopen_disputed_task(task_id: abi.Uint64) -> Expr:
+    return Seq(
+        Assert(self.task_status[task_id.get()] == TASK_DISPUTED),
+        self.task_status[task_id.get()].set(TASK_OPEN),
+        self.claimed_by[task_id.get()].set(Global.zero_address()),
+        Approve()
+    ) 
     
     @arc4.abimethod(
         # This method is called when the application is deleted
