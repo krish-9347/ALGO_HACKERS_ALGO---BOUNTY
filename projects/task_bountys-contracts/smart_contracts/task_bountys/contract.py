@@ -412,6 +412,14 @@ def submit_dispute_proposal(self, dispute_reason: String) -> bool:
         Len(dispute_reason.get()) > Int(10)
     )
 
+    @external
+def get_task_summary(task_id: abi.String, *, output: abi.Tuple3[abi.String, abi.Uint64, abi.String]) -> Expr:
+    return output.set(
+        App.globalGet(task_id_with_prefix(Bytes("status_"), task_id.get())),
+        App.globalGet(task_id_with_prefix(Bytes("reward_"), task_id.get())),
+        App.globalGet(task_id_with_prefix(Bytes("creator_"), task_id.get())),
+    )
+
     
     @arc4.abimethod(
         # This method is called when the application is deleted
