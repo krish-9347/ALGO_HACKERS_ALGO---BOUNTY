@@ -1,45 +1,143 @@
-# task_bountys
+# 🚀 AlgoBounty — Decentralized Task Bounty Board on Algorand
 
-This starter full stack project has been generated using AlgoKit. See below for default getting started instructions.
+AlgoBounty is a decentralized task marketplace built on the Algorand blockchain, enabling users to post bounties, claim tasks, submit proof of work, and receive rewards in a transparent, trustless, and automated manner. The platform eliminates intermediaries and introduces DAO-based dispute resolution, ensuring fair outcomes for all participants.
 
-## Setup
+## 🧠 Problem Statement
 
-### Initial setup
-1. Clone this repository to your local machine.
-2. Ensure [Docker](https://www.docker.com/) is installed and operational. Then, install `AlgoKit` following this [guide](https://github.com/algorandfoundation/algokit-cli#install).
-3. Run `algokit project bootstrap all` in the project directory. This command sets up your environment by installing necessary dependencies, setting up a Python virtual environment, and preparing your `.env` file.
-4. In the case of a smart contract project, execute `algokit generate env-file -a target_network localnet` from the `task_bountys-contracts` directory to create a `.env.localnet` file with default configuration for `localnet`.
-5. To build your project, execute `algokit project run build`. This compiles your project and prepares it for running.
-6. For project-specific instructions, refer to the READMEs of the child projects:
-   - Smart Contracts: [task_bountys-contracts](projects/task_bountys-contracts/README.md)
-   - Frontend Application: [task_bountys-frontend](projects/task_bountys-frontend/README.md)
+Traditional freelancing or microtask platforms often:
+- Charge high intermediary fees.
+- Lack transparency in reward distribution.
+- Have weak or biased dispute resolution systems.
 
-> This project is structured as a monorepo, refer to the [documentation](https://github.com/algorandfoundation/algokit-cli/blob/main/docs/features/project/run.md) to learn more about custom command orchestration via `algokit project run`.
+**AlgoBounty** solves these by using blockchain technology to create a **transparent**, **fee-efficient**, and **community-governed** alternative.
 
-### Subsequently
+---
 
-1. If you update to the latest source code and there are new dependencies, you will need to run `algokit project bootstrap all` again.
-2. Follow step 3 above.
+## 🎯 Objectives
 
-## Tools
+- ✅ Allow users to **post** tasks with reward amounts in ALGO or ASA tokens.
+- ✅ Enable workers to **claim** tasks and **submit** proof of work via IPFS.
+- ✅ **Automate** reward distribution using smart contract-based escrow.
+- ✅ Offer DAO-based **dispute resolution** through on-chain voting.
+- ✅ Integrate with DeFi protocols for optional yield farming & staking rewards (optional module).
 
-This project makes use of Python and React to build Algorand smart contracts and to provide a base project configuration to develop frontends for your Algorand dApps and interactions with smart contracts. The following tools are in use:
+---
 
-- Algorand, AlgoKit, and AlgoKit Utils
-- Python dependencies including Poetry, Black, Ruff or Flake8, mypy, pytest, and pip-audit
-- React and related dependencies including AlgoKit Utils, Tailwind CSS, daisyUI, use-wallet, npm, jest, playwright, Prettier, ESLint, and Github Actions workflows for build validation
+## 🌟 Key Features
 
-### VS Code
+### 🔐 Wallet Integration
+- Secure login with [Pera Wallet](https://perawallet.app/).
+- Users can post, claim, and vote using their Algorand wallet.
 
-It has also been configured to have a productive dev experience out of the box in [VS Code](https://code.visualstudio.com/), see the [backend .vscode](./backend/.vscode) and [frontend .vscode](./frontend/.vscode) folders for more details.
+### 📝 Task Creation & Posting
+- Users enter: Task Title, Description, Deadline, Reward (ALGO or ASA).
+- Tasks are stored immutably on the blockchain.
 
-## Integrating with smart contracts and application clients
+### 🤝 Task Claiming & Proof Submission
+- Workers claim tasks using smart contracts.
+- Submit work as IPFS links or uploads for validator/admin review.
 
-Refer to the [task_bountys-contracts](projects/task_bountys-contracts/README.md) folder for overview of working with smart contracts, [projects/task_bountys-frontend](projects/task_bountys-frontend/README.md) for overview of the React project and the [projects/task_bountys-frontend/contracts](projects/task_bountys-frontend/src/contracts/README.md) folder for README on adding new smart contracts from backend as application clients on your frontend. The templates provided in these folders will help you get started.
-When you compile and generate smart contract artifacts, your frontend component will automatically generate typescript application clients from smart contract artifacts and move them to `frontend/src/contracts` folder, see [`generate:app-clients` in package.json](projects/task_bountys-frontend/package.json). Afterwards, you are free to import and use them in your frontend application.
+### 🔒 Smart Contract Escrow
+- Reward funds are locked in escrow when a task is posted.
+- Funds are automatically released upon task approval or DAO consensus.
 
-The frontend starter also provides an example of interactions with your TaskBountysClient in [`AppCalls.tsx`](projects/task_bountys-frontend/src/components/AppCalls.tsx) component by default.
+### 🧬 DAO Voting for Dispute Resolution
+- In case of task submission disputes, token holders vote to decide the outcome.
+- Voting power may depend on staked native governance tokens (optional).
 
-## Next Steps
+### 💸 Optional: DeFi Integration
+- Rewards sourced from liquidity pools.
+- Workers earn additional APY on locked rewards (future module).
+- Staking module to allow governance rights and benefits.
 
-You can take this project and customize it to build your own decentralized applications on Algorand. Make sure to understand how to use AlgoKit and how to write smart contracts for Algorand before you start.
+---
+
+## ⚙️ Tech Stack
+
+### 🌐 Frontend
+- **React JS** for dynamic UI
+- **Tailwind CSS** for responsive design
+- **Pera Wallet SDK** for wallet integration
+- **IPFS** for decentralized file storage
+
+### 🧠 Smart Contracts
+- **Algorand Smart Contracts (ASC1) in PyTeal**
+- **AlgoKit** for project scaffolding, building, and deploying
+- **Algorand SDK** to interact with the blockchain
+
+### 🧪 Testing & Development Tools
+- Jest for testing
+- Algokit sandbox for local blockchain interaction
+- ESLint & Prettier for code quality
+
+---
+
+## 📸 Screenshots
+
+Here’s a preview of the **AlgoBounty Dashboard** in action:
+
+<p align="center">
+  <img src="./projects/task_bountys-frontend/public/Task Bounty Dashboard.png" alt="AlgoBounty Dashboard Screenshot" width="80%">
+</p>
+
+This dashboard provides users with a summary of their bounty activity on the Algorand blockchain, including:
+- Wallet info and total rewards earned.
+- Number of completed tasks and active claims.
+- Available bounties with details like payout, category, and deadline.
+- Section for active tasks and DeFi earning opportunities.
+
+Users can easily browse and post tasks, view posted and claimed bounties, and manage their activity all in one place.
+
+---
+
+
+## 🧪 Functional Modules
+
+| **Module**   | **Functionality**                               |
+| ------------ | ----------------------------------------------- |
+| Login        | Connect with Pera Wallet                        |
+| Post Task    | Add new task with reward and deadline           |
+| Claim Task   | Select and lock tasks through smart contract    |
+| Submit Proof | Upload work via IPFS or links                   |
+| Escrow       | Lock and release rewards via ASC1 contracts     |
+| DAO Voting   | Token-holders vote on disputes                  |
+| Dashboard    | View task statuses (Posted, Claimed, Completed) |
+
+---
+
+## 🧾 Prerequisites
+
+Before running the project locally, ensure you have:
+
+- [Node.js](https://nodejs.org/) ≥ v16
+- [AlgoKit](https://github.com/algorandfoundation/algokit-cli) installed
+- [Pera Wallet](https://perawallet.app/) mobile or extension
+- Git installed
+
+---
+
+***Installation Steps***
+
+**Clone the repository:**
+
+git clone https://github.com/your-username/AlgoBounty.git
+cd AlgoBounty
+
+**Install frontend dependencies:**
+
+`npm install`
+
+**Build and deploy smart contracts using AlgoKit:**
+
+`algokit project run build`
+
+**Start the development server:**
+
+`npm run dev`
+
+Visit http://localhost:3000 to view the running dApp.
+
+***License***
+
+This project is licensed under the MIT License.
+
