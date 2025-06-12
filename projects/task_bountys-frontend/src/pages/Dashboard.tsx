@@ -29,6 +29,23 @@ const Dashboard: React.FC = () => {
         </p>
       </div>
 
+
+      {mockUserStats.pendingDisputes > 0 && (
+  <div className="card bg-yellow-50 p-4 mb-6 border-l-4 border-yellow-400">
+    <p className="text-yellow-800">
+      ⚠️ You have <b>{mockUserStats.pendingDisputes}</b> dispute(s) pending review.
+      <Button 
+        variant="link"
+        size="sm"
+        onClick={() => navigate('/disputes')}
+        className="ml-2"
+      >
+        Review Now
+      </Button>
+    </p>
+  </div>
+)}
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <StatCard
           title="Total Rewards Earned"
