@@ -358,7 +358,10 @@ def auto_reopen_if_failed(self) -> None:
 def get_algo_balance(self) -> UInt64:
     return Global.current_application_address.balance()
 
-    
+    @arc4.abimethod
+def available_quantity(self) -> UInt64:
+    return Global.current_application_address.asset_holding(self.asset_id).amount
+
 
     @arc4.abimethod(
         # This method is called when the application is deleted
