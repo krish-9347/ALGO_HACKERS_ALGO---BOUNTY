@@ -76,16 +76,19 @@ const TaskSubmission: React.FC = () => {
     );
   }
   
-  const onSubmit = async (data: SubmissionForm) => {
-    setIsSubmitting(true);
-    
-    // Simulate blockchain transaction
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    console.log('Task submitted:', { taskId: task.id, ...data });
+const onSubmit = async (data: SubmissionForm) => {
+  setIsSubmitting(true);
+
+  await new Promise(resolve => setTimeout(resolve, 1500));
+  
+  console.log('Task submitted:', { taskId: task.id, ...data });
+
+  setShowToast(true); // Show confirmation
+  setTimeout(() => {
     setIsSubmitting(false);
     navigate('/my-tasks');
-  };
+  }, 2000);
+};
 
   return (
     <Layout>
