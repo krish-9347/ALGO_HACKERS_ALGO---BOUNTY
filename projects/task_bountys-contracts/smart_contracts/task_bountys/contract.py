@@ -254,6 +254,11 @@ def set_deadline(self, new_deadline: UInt64) -> None:
     assert Txn.sender == Global.creator_address, "Only creator can set deadline"
     self.deadline = new_deadline
     
+@arc4.abimethod
+def is_task_expired(self) -> bool:
+    return Global.latest_timestamp > self.deadline   
+
+
 
     
 
