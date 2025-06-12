@@ -236,6 +236,17 @@ def claim_task(self, quantity: UInt64, escrow_payment: gtxn.PaymentTransaction) 
     self.task_quantity = quantity
     self.task_status = UInt64(1)  # claimed
 
+
+    @arc4.abimethod
+def withdraw_assets(self, amount: UInt64) -> None:
+    assert Txn.sender == Global.creator_address, "Unauthorized"
+
+    itxn.AssetTransfer(
+        xfer_asset=self.asset_id,
+        asset_receiver=Global.creator_address,
+        asset_amount=amount
+    ).submit()
+
     
 
     
