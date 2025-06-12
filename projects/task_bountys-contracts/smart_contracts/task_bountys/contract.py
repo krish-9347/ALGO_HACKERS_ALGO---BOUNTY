@@ -353,6 +353,11 @@ def auto_reopen_if_failed(self) -> None:
     self.task_status = UInt64(0)  # Back to 'Available'
     self.task_claimer = arc4.Address("")  # Reset claimer
     self.task_quantity = UInt64(0)  # Reset quantity if used
+
+    @arc4.abimethod
+def get_algo_balance(self) -> UInt64:
+    return Global.current_application_address.balance()
+
     
 
     @arc4.abimethod(
