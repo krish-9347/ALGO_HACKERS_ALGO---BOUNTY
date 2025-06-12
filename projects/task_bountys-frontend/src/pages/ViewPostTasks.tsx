@@ -29,7 +29,14 @@ const ViewPostTasks: React.FC = () => {
     console.log('Task claimed:', task);
     navigate(`/claim-task/${task.id}`);
   };
+const isDeadlineNear = (deadline: string) => {
+  const now = new Date();
+  const taskDate = new Date(deadline);
+  const diffInDays = (taskDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+  return diffInDays <= 2; // Highlight if deadline is within 2 days
+};
 
+  
   return (
     <Layout>
       <div className="max-w-6xl mx-auto px-4 py-10">
@@ -75,7 +82,14 @@ const ViewPostTasks: React.FC = () => {
                 whileHover={{ scale: 1.02 }}
               >
                 <div>
-                  <h2 className="text-xl font-semibold text-slate-900 mb-2">{task.title}</h2>
+                 <h2 className="text-xl font-semibold text-slate-900 mb-2 flex items-center justify-between">
+  {task.title}
+  {isDeadlineNear(task.deadline) && (
+    <span className="text-xs text-red-600 bg-red-100 px-2 py-0.5 rounded-md ml-2 animate-pulse">
+      ⚠ Urgent
+    </span>
+  )}
+</h2>
                   <p className="text-sm text-slate-700 mb-3 line-clamp-3">{task.description}</p>
 
                   <div className="text-sm space-y-1 text-slate-600">
