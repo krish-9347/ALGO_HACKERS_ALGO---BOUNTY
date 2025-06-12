@@ -301,7 +301,14 @@ def rate_claimer(self, stars: UInt64) -> None:
 
     self.user_ratings[self.task_claimer].append(stars)
 
+@arc4.abimethod
+def auto_reopen(self) -> None:
+    assert self.task_status in [UInt64(1), UInt64(2)]
+    assert Global.latest_timestamp > self.deadline
 
+    self.task_claimer = arc4.Address("")
+    self.task_quantity = UInt64(0)
+    self.task_status = UInt64(0)
 
     
 
