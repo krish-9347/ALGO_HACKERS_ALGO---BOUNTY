@@ -118,6 +118,10 @@ class TaskBounty(arc4.ARC4Contract):
         assert Txn.sender == self.task_claimer or Txn.sender == Global.creator_address, "Only claimer or creator can         dispute"
         self.task_status = UInt64(4)  # disputed
 
+    @arc4.abimethod
+def get_price(self) -> UInt64:
+    return self.unitary_price
+
     @arc4.abimethod(
         # This method is called when the application is deleted
         allow_actions=["DeleteApplication"]
