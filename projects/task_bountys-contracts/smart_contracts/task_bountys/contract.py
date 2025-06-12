@@ -405,6 +405,12 @@ def is_refund_eligible(self) -> bool:
         Len(self.task_proof_hash) == Int(0)
     )
 
+@arc4.abimethod
+def submit_dispute_proposal(self, dispute_reason: String) -> bool:
+    return And(
+        self.task_status == UInt64(3),  # 'In Dispute'
+        Len(dispute_reason.get()) > Int(10)
+    )
 
     
     @arc4.abimethod(
