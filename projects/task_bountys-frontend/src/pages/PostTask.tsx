@@ -63,7 +63,7 @@ const PostTask: React.FC = () => {
         reward: data.reward,
         rewardAsset: data.rewardAsset,
         deadline: data.deadline,
-        ipfsLink: data.ipfsLink || '',
+        ipfsLink: data.ipfsLink || `ipfs://mock/${Date.now()}`,
         status: 'posted',
       };
 
