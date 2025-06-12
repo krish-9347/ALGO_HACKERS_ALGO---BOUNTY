@@ -371,7 +371,17 @@ def reject_submission(task_id: abi.Uint64) -> Expr:
         self.task_status[task_id.get()].set(TASK_DISPUTED),
         self.dispute_timestamp[task_id.get()].set(Global.latest_timestamp()),
         Approve()
-    )  commit msg
+    )  
+
+
+    @external(authorize=Authorize.only_creator)
+def reject_submission(task_id: abi.Uint64) -> Expr:
+    return Seq(
+        Assert(self.task_status[task_id.get()] == TASK_SUBMITTED),
+        self.task_status[task_id.get()].set(TASK_DISPUTED),
+        self.dispute_timestamp[task_id.get()].set(Global.latest_timestamp()),
+        Approve()
+    ) 
 
 
     @arc4.abimethod(
