@@ -13,23 +13,29 @@ const DAOVoting: React.FC = () => {
     mockTasks.filter(task => task.status === 'disputed')
   );
   
-  const handleVote = async (taskId: string, vote: 'approve' | 'reject') => {
-    // Simulate voting
-    setVotingTasks(prevTasks => 
-      prevTasks.map(task => {
-        if (task.id === taskId) {
-          return {
-            ...task,
-            votes: {
-              approve: vote === 'approve' ? (task.votes?.approve || 0) + 1 : (task.votes?.approve || 0),
-              reject: vote === 'reject' ? (task.votes?.reject || 0) + 1 : (task.votes?.reject || 0),
-            }
-          };
-        }
-        return task;
-      })
-    );
-  };
+ const [votedTasks, setVotedTasks] = useState<string[]>([]);
+
+const handleVote = async (taskId: string, vote: 'approve' | 'reject') => {
+  if (votedTasks.includes(taskId)) return; // Prevent double voting
+
+  setVotingTasks(prevTasks => 
+    prevTasks.map(task => {
+      if (task.id === taskId) {
+        return {
+          ...task,
+          votes: {
+            approve: vote === 'approve' ? (task.votes?.approve || 0) + 1 : (task.votes?.approve || 0),
+            reject: vote === 'reject' ? (task.votes?.reject || 0) + 1 : (task.votes?.reject || 0),
+          }
+        };
+      }
+      return task;
+    })
+  );
+
+  setVotedTasks(prev => [...prev, taskId]);
+};
+
 
   return (
     <Layout>
