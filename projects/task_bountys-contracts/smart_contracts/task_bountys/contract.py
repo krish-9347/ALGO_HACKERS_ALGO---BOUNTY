@@ -336,7 +336,11 @@ def on_task_approved(self) -> None:
             amount=Int(100000),  # small bonus
         ).submit()
 
-
+@arc4.abimethod
+def submit_proof_url(self, proof: abi.String) -> None:
+    assert self.task_status == UInt64(1), "No task in progress"
+    assert Txn.sender == self.task_claimer
+    self.proofs[Txn.sender] = proof
     
     
 
