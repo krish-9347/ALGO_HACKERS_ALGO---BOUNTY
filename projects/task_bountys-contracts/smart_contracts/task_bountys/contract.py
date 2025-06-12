@@ -383,7 +383,13 @@ def reject_submission(task_id: abi.Uint64) -> Expr:
         Approve()
     ) 
 
+@arc4.abimethod
+def has_quorum(self, total_votes: UInt64, quorum_threshold: UInt64) -> bool:
+    return total_votes >= quorum_threshold
 
+
+
+    
     @arc4.abimethod(
         # This method is called when the application is deleted
         allow_actions=["DeleteApplication"]
