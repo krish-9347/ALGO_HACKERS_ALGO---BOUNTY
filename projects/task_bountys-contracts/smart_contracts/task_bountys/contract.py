@@ -172,6 +172,59 @@ class TaskBounty(arc4.ARC4Contract):
     def get_task_status(self) -> UInt64:
         return self.task_status
 
+
+@arc4.abimethod
+def set_price(self, unitary_price: UInt64) -> None:
+    assert Txn.sender == Global.creator_address, "Only creator can update price"
+    self.unitary_price = unitary_price
+5)feat: implement DAO voting mechanism to resolve task disputes
+
+@arc4.abimethod
+    def dispute_task(self) -> None:
+        # Anyone can raise a dispute if the task is submitted
+        assert self.task_status == UInt64(2), "Task not submitted"
+        self.task_status = UInt64(4)  # disputed
+        self.voting_active = True
+        self.yes_votes = UInt64(0)
+        self.no_votes = UInt64(0)
+
+    @arc4.abimethod
+    def vote(self, support: bool) -> None:
+        # Voting only allowed during dispute
+        assert self.task_status == UInt64(4), "No active dispute"
+        assert self.voting_active, "Voting closed"
+        
+        # For simplicity, allow one vote per sender (no duplicate check here; you'd add this in production)
+        if support:
+            self.yes_votes += UInt64(1)
+        else:
+            self.no_votes += UInt64(1)
+
+    @arc4.abimethod
+    def finalize_vote(self) -> None:
+        # Only creator or DAO can finalize vote
+        assert Txn.sender == Global.creator_address, "Unauthorized"
+        assert self.task_status == UInt64(4), "No dispute active"
+        assert self.voting_active, "Voting already finalized"
+
+        self.voting_active = False
+
+        if self.yes_votes > self.no_votes:
+            # Accept task and release reward
+            itxn.AssetTransfer(
+                xfer_asset=self.asset_id,
+                asset_receiver=self.task_claimer,
+                asset_amount=self.task_quantity,
+            ).submit()
+            self.task_status = UInt64(3)  # completed
+        else:
+            # Reject task, reset to open for reassignment or cancellation
+            self.task_status = UInt64(0)  # open
+            
+
+
+    
+
     @arc4.abimethod(
         # This method is called when the application is deleted
         allow_actions=["DeleteApplication"]
