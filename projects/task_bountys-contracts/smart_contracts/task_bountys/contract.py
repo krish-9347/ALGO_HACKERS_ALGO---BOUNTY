@@ -1,512 +1,148 @@
-from algopy import (
-    # On Algorand, assets are native objects rather than smart contracts
-    Asset,
-    # Global is used to access global variables from the network
-    Global,
-    # Txn is used access information about the current transcation
-    Txn,
-    # By default, all numbers in the AVM are 64-bit unsigned integers
-    UInt64,
-    # ARC4 defines the Algorand ABI for method calling and type encoding
-    arc4,
-    # gtxn is used to read transaction within the same atomic group
-    gtxn,
-    # itxn is used to send transactions from within a smart contract
-    itxn,
-)
+from algopy import UInt64, gtxn, ARC4Contract, arc4, Global, itxn, BoxMap
 
+class TaskData(arc4.Struct, frozen=True):
+    company: arc4.Address
+    freelancer: arc4.Address
+    reward: arc4.UInt64
 
-# We want the methods in our contract to follow the ARC4 standard
-class TaskBounty(arc4.ARC4Contract):
-    # Every asset has a unique ID
-    # We want to store the ID for the asset we are selling
-    asset_id: UInt64
+class DisputeData(arc4.Struct, frozen=False):
+    freelancer_votes: arc4.UInt64
+    company_votes: arc4.UInt64
+    is_open: arc4.Bool
+    voters: arc4.DynamicArray[arc4.Address]
+    reward: arc4.UInt64
+    client_amount_transferred: arc4.Bool
+    freelancer_amount_transferred: arc4.Bool
 
-    # We want to store the price for the asset we are selling
-    unitary_price: UInt64
-
-    # We want create_application to be a plublic ABI method
-    @arc4.abimethod(
-        # There are certain actions that a contract call can do
-        # Some examples are UpdateApplication, DeleteApplication, and NoOp
-        # NoOp is a call that does nothing special after it is exected
-        allow_actions=["NoOp"],
-        # Require that this method is only callable when creating the app
-        create="require",
-    )
-    def create_application(
-        self,
-        # The ID of the asset we're selling
-        asset_id: Asset,
-        # The initial sale price
-        unitary_price: UInt64,
-    ) -> None:
-        # Save the values we passed in to our method in the contract's state
-        self.asset_id = asset_id.id
-        self.unitary_price = unitary_price
+class TaskBountyContract(ARC4Contract):
+    def __init__(self) -> None:
+        self.tasks = BoxMap(arc4.UInt64, TaskData, key_prefix="users")
+        self.disputes = BoxMap(arc4.UInt64, DisputeData, key_prefix="disputes")
 
     @arc4.abimethod
-    def set_price(self, unitary_price: UInt64) -> None:
-        # We don't want anyone to be able to come in and modify the price
-        # You could implement some sort of RBAC,
-        # but in this case just making sure the caller is the app creator works
-        assert Txn.sender == Global.creator_address
-
-        # Save the new price
-        self.unitary_price = unitary_price
-
-    # Before any account can receive an asset, it must opt-in to it
-    # This method enables the application to opt-in to the asset
-    @arc4.abimethod
-    def opt_in_to_asset(
+    def create_task(
         self,
-        # Whenever someone calls this method, they also need to send a payment
-        # A payment transaction is a transfer of ALGO
-        mbr_pay: gtxn.PaymentTransaction,
+        payment_txn: gtxn.PaymentTransaction,
+        task_id: arc4.UInt64,
+        company: arc4.Address,
+        freelancer: arc4.Address,
+        reward: arc4.UInt64,
     ) -> None:
-        # We want to make sure that the application address is not already opted in
-        assert not Global.current_application_address.is_opted_in(Asset(self.asset_id))
+        assert payment_txn.receiver == Global.current_application_address
+        assert payment_txn.amount >= reward.native
+        assert payment_txn.sender == company.native
+        self.tasks[task_id] = TaskData(company, freelancer, reward)
 
-        # Just like asserting fields in Txn, we can assert fields in the PaymentTxn
-        # We can do this only because it is grouped atomically with our app call
-
-        # Just because we made it an argument to the method, there's no gurantee
-        # it is being sent to the aplication's address so we need to manually assert
-        assert mbr_pay.receiver == Global.current_application_address
-
-        # On Algorand, each account has a minimum balance requirement (MBR)
-        # The MBR is locked in the account and cannot be spent (until explicitly unlocked)
-        # Every accounts has an MBR of 0.1 ALGO (Global.min_balance)
-        # Opting into an asset increases the MBR by 0.1 ALGO (Global.asset_opt_in_min_balance)
-        assert mbr_pay.amount == Global.min_balance + Global.asset_opt_in_min_balance
-
-        # Transactions can be sent from a user via signatures
-        # They can also be sent programmatically from a smart contract
-        # Here we want to issue an opt-in transaction
-        # An opt-in transaction is simply transferring 0 of an asset to yourself
-        itxn.AssetTransfer(
-            xfer_asset=self.asset_id,
-            asset_receiver=Global.current_application_address,
-            asset_amount=0,
+    @arc4.abimethod
+    def release_reward(self, task_id: arc4.UInt64, caller: arc4.Address) -> UInt64:
+        task = self.tasks[task_id]
+        assert caller == task.company, "Only company can release"
+        result = itxn.Payment(
+            sender=Global.current_application_address,
+            receiver=task.freelancer.native,
+            amount=task.reward.native,
+            fee=0,
         ).submit()
+        del self.tasks[task_id]
+        return result.amount
 
     @arc4.abimethod
-    def buy(
-        self,
-        # To buy assets, a payment must be sent
-        buyer_txn: gtxn.PaymentTransaction,
-        # The quantity of assets to buy
-        quantity: UInt64,
+    def start_appeal(self, task_id: arc4.UInt64, caller: arc4.Address) -> None:
+        task = self.tasks[task_id]
+        assert caller == task.company or caller == task.freelancer
+        assert task_id not in self.disputes
+        self.disputes[task_id] = DisputeData(
+            freelancer_votes=arc4.UInt64(0),
+            company_votes=arc4.UInt64(0),
+            is_open=arc4.Bool(True),
+            voters=arc4.DynamicArray[arc4.Address](),
+            reward=task.reward,
+            client_amount_transferred=arc4.Bool(False),
+            freelancer_amount_transferred=arc4.Bool(False),
+        )
+
+    @arc4.abimethod
+    def cast_vote(
+        self, task_id: arc4.UInt64, vote_for_freelancer: arc4.Bool, caller: arc4.Address
     ) -> None:
-        # We need to verify that the payment is being sent to the application
-        # and is enough to cover the cost of the asset
-        assert buyer_txn.sender == Txn.sender
-        assert buyer_txn.receiver == Global.current_application_address
-        assert buyer_txn.amount == self.unitary_price * quantity
-
-        # Once we've verified the payment, we can transfer the asset
-        itxn.AssetTransfer(
-            xfer_asset=self.asset_id,
-            asset_receiver=Txn.sender,
-            asset_amount=quantity,
-        ).submit()
-
-
-    arc4.abimethod
-    def dispute_task(self) -> None:
-        assert self.task_status == UInt64(2), "Task must be submitted to dispute"
-        assert Txn.sender == self.task_claimer or Txn.sender == Global.creator_address, "Only claimer or creator can         dispute"
-        self.task_status = UInt64(4)  # disputed
-
-    @arc4.abimethod
-def get_price(self) -> UInt64:
-    return self.unitary_price
-
-
-class TaskBounty(arc4.ARC4Contract):
-    asset_id: UInt64
-    unitary_price: UInt64
-
-    task_claimer: abi.StaticBytes[Address]
-    task_quantity: UInt64
-    task_status: UInt64  # 0 = open, 1 = claimed, 2 = submitted, 3 = completed
-
-    @arc4.abimethod(create="require", allow_actions=["NoOp"])
-    def create_application(
-        self,
-        asset_id: Asset,
-        unitary_price: UInt64,
-    ) -> None:
-        self.asset_id = asset_id.id
-        self.unitary_price = unitary_price
-        self.task_status = UInt64(0)  # Initial state: open
-
-    @arc4.abimethod
-    def claim_task(self, quantity: UInt64) -> None:
-        assert self.task_status == UInt64(0), "Task not open"
-        self.task_claimer = Txn.sender
-        self.task_quantity = quantity
-        self.task_status = UInt64(1)  # claimed
-
-    @arc4.abimethod
-    def submit_task(self) -> None:
-        assert self.task_status == UInt64(1), "Task not in claimed state"
-        assert Txn.sender == self.task_claimer, "Only claimer can submit"
-        self.task_status = UInt64(2)  # submitted
-
-    @arc4.abimethod
-    def approve_task(self) -> None:
-        assert self.task_status == UInt64(2), "Task not submitted yet"
-        assert Txn.sender == Global.creator_address, "Unauthorized"
-
-        # Send reward
-        itxn.AssetTransfer(
-            xfer_asset=self.asset_id,
-            asset_receiver=self.task_claimer,
-            asset_amount=self.task_quantity,
-        ).submit()
-
-        self.task_status = UInt64(3)  # completed
-
-    @arc4.abimethod
-    def get_task_status(self) -> UInt64:
-        return self.task_status
-
-
-@arc4.abimethod
-def set_price(self, unitary_price: UInt64) -> None:
-    assert Txn.sender == Global.creator_address, "Only creator can update price"
-    self.unitary_price = unitary_price
-5)feat: implement DAO voting mechanism to resolve task disputes
-
-@arc4.abimethod
-    def dispute_task(self) -> None:
-        # Anyone can raise a dispute if the task is submitted
-        assert self.task_status == UInt64(2), "Task not submitted"
-        self.task_status = UInt64(4)  # disputed
-        self.voting_active = True
-        self.yes_votes = UInt64(0)
-        self.no_votes = UInt64(0)
-
-    @arc4.abimethod
-    def vote(self, support: bool) -> None:
-        # Voting only allowed during dispute
-        assert self.task_status == UInt64(4), "No active dispute"
-        assert self.voting_active, "Voting closed"
-        
-        # For simplicity, allow one vote per sender (no duplicate check here; you'd add this in production)
-        if support:
-            self.yes_votes += UInt64(1)
+        dispute = self.disputes[task_id].copy()
+        assert dispute.is_open
+        for voter in dispute.voters:
+            assert caller != voter, "Already voted"
+        if vote_for_freelancer:
+            dispute.freelancer_votes = arc4.UInt64(dispute.freelancer_votes.native + 1)
         else:
-            self.no_votes += UInt64(1)
+            dispute.company_votes = arc4.UInt64(dispute.company_votes.native + 1)
+        dispute.voters.append(caller)
+        self.disputes[task_id] = dispute
 
     @arc4.abimethod
-    def finalize_vote(self) -> None:
-        # Only creator or DAO can finalize vote
-        assert Txn.sender == Global.creator_address, "Unauthorized"
-        assert self.task_status == UInt64(4), "No dispute active"
-        assert self.voting_active, "Voting already finalized"
-
-        self.voting_active = False
-
-        if self.yes_votes > self.no_votes:
-            # Accept task and release reward
-            itxn.AssetTransfer(
-                xfer_asset=self.asset_id,
-                asset_receiver=self.task_claimer,
-                asset_amount=self.task_quantity,
+    def resolve_dispute(self, task_id: arc4.UInt64, caller: arc4.Address) -> UInt64:
+        task = self.tasks[task_id]
+        dispute = self.disputes[task_id].copy()
+        assert dispute.is_open
+        voter_reward_pool = arc4.UInt64(dispute.reward.native // 10) if dispute.voters.length > 0 else arc4.UInt64(0)
+        reward_to_winner = arc4.UInt64(dispute.reward.native - voter_reward_pool.native)
+        if dispute.freelancer_votes.native > dispute.company_votes.native:
+            result = itxn.Payment(
+                sender=Global.current_application_address,
+                receiver=task.freelancer.native,
+                amount=reward_to_winner.native,
+                fee=0,
             ).submit()
-            self.task_status = UInt64(3)  # completed
+            dispute.freelancer_amount_transferred = arc4.Bool(True)
+            dispute.client_amount_transferred = arc4.Bool(True)
+        elif dispute.freelancer_votes.native < dispute.company_votes.native:
+            result = itxn.Payment(
+                sender=Global.current_application_address,
+                receiver=task.company.native,
+                amount=reward_to_winner.native,
+                fee=0,
+            ).submit()
+            dispute.client_amount_transferred = arc4.Bool(True)
+            dispute.freelancer_amount_transferred = arc4.Bool(True)
         else:
-            # Reject task, reset to open for reassignment or cancellation
-            self.task_status = UInt64(0)  # open
-            
-@arc4.abimethod
-def claim_task(self, quantity: UInt64, escrow_payment: gtxn.PaymentTransaction) -> None:
-    # Task must be open
-    assert self.task_status == UInt64(0), "Task not open"
-
-    # Escrow payment must be sent by claimer to app address, equal to reward amount
-    assert escrow_payment.sender == Txn.sender, "Escrow payment sender mismatch"
-    assert escrow_payment.receiver == Global.current_application_address, "Escrow payment must go to app"
-    assert escrow_payment.amount == self.unitary_price * quantity, "Incorrect escrow payment amount"
-
-    # Lock the reward in escrow by receiving ALGO payment to app account
-    self.task_claimer = Txn.sender
-    self.task_quantity = quantity
-    self.task_status = UInt64(1)  # claimed
-
-
-    @arc4.abimethod
-def withdraw_assets(self, amount: UInt64) -> None:
-    assert Txn.sender == Global.creator_address, "Unauthorized"
-
-    itxn.AssetTransfer(
-        xfer_asset=self.asset_id,
-        asset_receiver=Global.creator_address,
-        asset_amount=amount
-    ).submit()
-    
-deadline: UInt64  # new state variable
-
-@arc4.abimethod
-def set_deadline(self, new_deadline: UInt64) -> None:
-    assert Txn.sender == Global.creator_address, "Only creator can set deadline"
-    self.deadline = new_deadline
-    
-@arc4.abimethod
-def is_task_expired(self) -> bool:
-    return Global.latest_timestamp > self.deadline   
-
-@arc4.abimethod
-def penalize_claimer(self, penalty_amount: UInt64) -> None:
-    assert Txn.sender == Global.creator_address, "Only creator can penalize"
-    assert self.task_status == UInt64(2) or self.task_status == UInt64(4), "Only during submission/dispute"
-
-    itxn.Payment(
-        receiver=Global.creator_address,
-        amount=penalty_amount
-    ).submit()
-
-    self.task_status = UInt64(0)  # reopen task
-    self.task_claimer = arc4.Address("")
-    self.task_quantity = UInt64(0)
-
-
-@arc4.abimethod
-def reassign_task(self) -> None:
-    assert self.task_status == UInt64(1), "Task not in claimed state"
-    assert Global.latest_timestamp > self.deadline, "Deadline not passed"
-
-    self.task_claimer = arc4.Address("")
-    self.task_quantity = UInt64(0)
-    self.task_status = UInt64(0)
-
-
-task_counts: dict[arc4.Address, UInt64]
-
-@arc4.abimethod
-def claim_task(self, quantity: UInt64, escrow_payment: gtxn.PaymentTransaction) -> None:
-    # ... existing checks
-    self.task_counts[Txn.sender] = self.task_counts.get(Txn.sender, UInt64(0)) + UInt64(1)
-
-
-user_ratings: dict[arc4.Address, abi.DynamicArray[UInt64]]
-
-@arc4.abimethod
-def rate_claimer(self, stars: UInt64) -> None:
-    assert self.task_status == UInt64(3), "Task must be completed"
-    assert Txn.sender == Global.creator_address
-    assert stars >= UInt64(1) and stars <= UInt64(5), "Invalid rating"
-
-    self.user_ratings[self.task_claimer].append(stars)
-
-@arc4.abimethod
-def auto_reopen(self) -> None:
-    assert self.task_status in [UInt64(1), UInt64(2)]
-    assert Global.latest_timestamp > self.deadline
-
-    self.task_claimer = arc4.Address("")
-    self.task_quantity = UInt64(0)
-    self.task_status = UInt64(0)
-
-
-extension_votes: dict[arc4.Address, bool]
-extension_threshold: UInt64
-
-@arc4.abimethod
-def vote_extend_deadline(self) -> None:
-    assert not self.extension_votes[Txn.sender], "Already voted"
-    self.extension_votes[Txn.sender] = True
-
-    vote_count = Global.group_size  # simplistic placeholder
-    if vote_count >= self.extension_threshold:
-        self.deadline += UInt64(86400)  # Extend by 1 day
-
-user_streaks: dict[arc4.Address, UInt64]
-
-@arc4.abimethod
-def on_task_approved(self) -> None:
-    assert Txn.sender == Global.creator_address
-    self.user_streaks[self.task_claimer] = self.user_streaks.get(self.task_claimer, UInt64(0)) + UInt64(1)
-
-    if self.user_streaks[self.task_claimer] >= UInt64(5):
-        itxn.Payment(
-            receiver=self.task_claimer,
-            amount=Int(100000),  # small bonus
-        ).submit()
-
-@arc4.abimethod
-def submit_proof_url(self, proof: abi.String) -> None:
-    assert self.task_status == UInt64(1), "No task in progress"
-    assert Txn.sender == self.task_claimer
-    self.proofs[Txn.sender] = proof
-
-
-
-@arc4.abimethod
-def auto_reopen_if_failed(self) -> None:
-    """Automatically reopens a task if deadline has passed and it's not completed."""
-    assert self.task_status == UInt64(1), "Task is not in progress"
-    assert Global.latest_timestamp > self.deadline, "Deadline not passed yet"
-
-    self.task_status = UInt64(0)  # Back to 'Available'
-    self.task_claimer = arc4.Address("")  # Reset claimer
-    self.task_quantity = UInt64(0)  # Reset quantity if used
+            assert caller == task.company or caller == task.freelancer
+            reward_half = arc4.UInt64(reward_to_winner.native // 2)
+            if caller == task.company:
+                dispute.client_amount_transferred = arc4.Bool(True)
+            elif caller == task.freelancer:
+                dispute.freelancer_amount_transferred = arc4.Bool(True)
+            result = itxn.Payment(
+                sender=Global.current_application_address,
+                receiver=caller.native,
+                amount=reward_half.native,
+                fee=0,
+            ).submit()
+        if dispute.freelancer_amount_transferred and dispute.client_amount_transferred:
+            del self.tasks[task_id]
+            dispute.is_open = arc4.Bool(False)
+        self.disputes[task_id] = dispute
+        return result.amount
 
     @arc4.abimethod
-def get_algo_balance(self) -> UInt64:
-    return Global.current_application_address.balance()
-
-    @arc4.abimethod
-def available_quantity(self) -> UInt64:
-    return Global.current_application_address.asset_holding(self.asset_id).amount
-
-
-
-    @external(authorize=Authorize.only_creator)
-def reject_submission(task_id: abi.Uint64) -> Expr:
-    return Seq(
-        Assert(self.task_status[task_id.get()] == TASK_SUBMITTED),
-        self.task_status[task_id.get()].set(TASK_DISPUTED),
-        self.dispute_timestamp[task_id.get()].set(Global.latest_timestamp()),
-        Approve()
-    )  
-
-
-    @external(authorize=Authorize.only_creator)
-def reject_submission(task_id: abi.Uint64) -> Expr:
-    return Seq(
-        Assert(self.task_status[task_id.get()] == TASK_SUBMITTED),
-        self.task_status[task_id.get()].set(TASK_DISPUTED),
-        self.dispute_timestamp[task_id.get()].set(Global.latest_timestamp()),
-        Approve()
-    ) 
-
-@arc4.abimethod
-def has_quorum(self, total_votes: UInt64, quorum_threshold: UInt64) -> bool:
-    return total_votes >= quorum_threshold
-
-
-@arc4.abimethod
-def calculate_penalty(self, actual_submit_time: UInt64) -> UInt64:
-    penalty = If(
-        actual_submit_time > self.deadline,
-        (actual_submit_time - self.deadline) * Int(10_000),  # e.g., 0.01 ALGO/sec
-        Int(0)
-    )
-    return penalty
-
-@arc4.abimethod
-def is_refund_eligible(self) -> bool:
-    return And(
-        self.task_status == UInt64(1),  # Active
-        Global.latest_timestamp > self.deadline,
-        Len(self.task_proof_hash) == Int(0)
-    )
-
-@arc4.abimethod
-def submit_dispute_proposal(self, dispute_reason: String) -> bool:
-    return And(
-        self.task_status == UInt64(3),  # 'In Dispute'
-        Len(dispute_reason.get()) > Int(10)
-    )
-
-    @external
-def get_task_summary(task_id: abi.String, *, output: abi.Tuple3[abi.String, abi.Uint64, abi.String]) -> Expr:
-    return output.set(
-        App.globalGet(task_id_with_prefix(Bytes("status_"), task_id.get())),
-        App.globalGet(task_id_with_prefix(Bytes("reward_"), task_id.get())),
-        App.globalGet(task_id_with_prefix(Bytes("creator_"), task_id.get())),
-    )
-
-
-    @external
-def list_disputed_tasks(*, output: abi.DynamicArray[abi.String]) -> Expr:
-    i = ScratchVar(TealType.uint64)
-    results = ScratchVar(TealType.bytes)
-    return Seq(
-        output.set([
-            App.globalGet(Bytes("dispute_0")),
-            App.globalGet(Bytes("dispute_1")),
-            App.globalGet(Bytes("dispute_2")),
-            App.globalGet(Bytes("dispute_3")),
-            App.globalGet(Bytes("dispute_4"))
-        ]),
-    )
-
-@external(authorize=Authorize.only_creator)
-def extend_deadline(task_id: abi.Uint64, new_deadline: abi.Uint64) -> Expr:
-    return Seq(
-        Assert(
-            Or(
-                self.task_status[task_id.get()] == TASK_OPEN,
-                self.task_status[task_id.get()] == TASK_CLAIMED
-            )
-        ),
-        Assert(new_deadline.get() > self.task_deadline[task_id.get()]),
-        self.task_deadline[task_id.get()].set(new_deadline.get()),
-        Approve()
-    )
-
-    @external(authorize=Authorize.only_creator)
-def reopen_disputed_task(task_id: abi.Uint64) -> Expr:
-    return Seq(
-        Assert(self.task_status[task_id.get()] == TASK_DISPUTED),
-        self.task_status[task_id.get()].set(TASK_OPEN),
-        self.claimed_by[task_id.get()].set(Global.zero_address()),
-        Approve()
-    ) 
-
-
-@external(authorize=Authorize.only_creator)
-def force_resolve_dispute(task_id: abi.Uint64) -> Expr:
-    return Seq(
-        Assert(self.task_status[task_id.get()] == TASK_DISPUTED),
-        Assert(Global.latest_timestamp() > self.dispute_timestamp[task_id.get()] + Int(86400 * 3)),  # 3 days
-        If(self.dispute_votes_yes[task_id.get()] > self.dispute_votes_no[task_id.get()])
-        .Then(self.task_status[task_id.get()].set(TASK_APPROVED))
-        .Else(self.task_status[task_id.get()].set(TASK_REJECTED)),
-        Approve()
-    )
-
-
-
-    @external
-def propose_task_cancellation(task_id: abi.Uint64, proposer: abi.Account) -> Expr:
-    return Seq(
-        Assert(self.task_status[task_id.get()] == TASK_OPEN),
-        Assert(self.task_cancel_proposed[task_id.get()].not_()),
-        self.task_cancel_proposed[task_id.get()].set(Int(1)),
-        self.task_cancel_votes_yes[task_id.get()].set(Int(1)),  # initial proposer vote
-        self.has_voted_cancel[task_id.get(), proposer.address()].set(Int(1)),
-        Approve()
-    )
-
-    
-    @arc4.abimethod(
-        # This method is called when the application is deleted
-        allow_actions=["DeleteApplication"]
-    )
-    def delete_application(self) -> None:
-        # Only allow the creator to delete the application
-        assert Txn.sender == Global.creator_address
-
-        # Send all the unsold assets to the creator
-        itxn.AssetTransfer(
-            xfer_asset=self.asset_id,
-            asset_receiver=Global.creator_address,
-            # The amount is 0, but the asset_close_to field is set
-            # This means that ALL assets are being sent to the asset_close_to address
-            asset_amount=0,
-            # Close the asset to unlock the 0.1 ALGO that was locked in opt_in_to_asset
-            asset_close_to=Global.creator_address,
+    def claim_voting_reward(self, task_id: arc4.UInt64, caller: arc4.Address) -> UInt64:
+        dispute = self.disputes[task_id].copy()
+        voters = dispute.voters
+        found = False
+        new_voters = arc4.DynamicArray[arc4.Address]()
+        for voter in voters:
+            if voter == caller:
+                found = True
+            else:
+                new_voters.append(voter)
+        assert found, "Caller did not vote"
+        total_reward = arc4.UInt64(dispute.reward.native // 10)
+        share = arc4.UInt64(total_reward.native // voters.length)
+        result = itxn.Payment(
+            sender=Global.current_application_address,
+            receiver=caller.native,
+            amount=share.native,
+            fee=0,
         ).submit()
-  
-        # Send the remaining balance to the creator
-        itxn.Payment(
-            receiver=Global.creator_address,
-            amount=0,
-            # Close the account to get back ALL the ALGO in the account
-            close_remainder_to=Global.creator_address,
-        ).submit()
+        if new_voters.length == 0:
+            del self.disputes[task_id]
+        else:
+            dispute.voters = new_voters
+            self.disputes[task_id] = dispute
+        return result.amount
