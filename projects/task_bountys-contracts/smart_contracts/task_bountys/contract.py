@@ -195,6 +195,12 @@ def cast_vote_with_note(
     # Same logic as cast_vote, but stores log(note)
     log("VoteNote", note)
 
+@arc4.abimethod
+def update_freelancer(self, task_id: arc4.UInt64, new_freelancer: arc4.Address, caller: arc4.Address) -> None:
+    task = self.tasks[task_id]
+    assert caller == task.company, "Only company can update freelancer"
+    self.tasks[task_id] = TaskData(task.company, new_freelancer, task.reward)
+
 
 
 
