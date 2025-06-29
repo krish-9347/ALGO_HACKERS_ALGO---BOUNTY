@@ -184,5 +184,17 @@ def cancel_task(self, task_id: arc4.UInt64, caller: arc4.Address) -> UInt64:
     del self.tasks[task_id]
     return result.amount
 
+@arc4.abimethod
+def cast_vote_with_note(
+    self,
+    task_id: arc4.UInt64,
+    vote_for_freelancer: arc4.Bool,
+    note: arc4.String,
+    caller: arc4.Address
+) -> None:
+    # Same logic as cast_vote, but stores log(note)
+    log("VoteNote", note)
+
+
 
 
