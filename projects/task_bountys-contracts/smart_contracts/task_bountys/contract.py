@@ -171,5 +171,18 @@ def get_dispute_status(self, task_id: arc4.UInt64) -> DisputeData:
 def get_task(self, task_id: arc4.UInt64) -> TaskData:
     return self.tasks[task_id]
 
+@arc4.abimethod
+def cancel_task(self, task_id: arc4.UInt64, caller: arc4.Address) -> UInt64:
+    task = self.tasks[task_id]
+    assert caller == task.company, "Only company can cancel"
+    result = itxn.Payment(
+        sender=Global.current_application_address,
+        receiver=caller.native,
+        amount=task.reward.native,
+        fee=0,
+    ).submit()
+    del self.tasks[task_id]
+    return result.amount
+
 
 
