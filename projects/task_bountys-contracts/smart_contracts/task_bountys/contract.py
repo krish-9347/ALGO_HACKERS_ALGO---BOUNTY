@@ -150,4 +150,16 @@ class TaskBountyContract(ARC4Contract):
   @arc4.abimethod
 def task_exists(self, task_id: arc4.UInt64) -> arc4.Bool:
     return arc4.Bool(task_id in self.tasks)
+ @arc4.abimethod
+def reject_task(self, task_id: arc4.UInt64, caller: arc4.Address) -> None:
+    task = self.tasks[task_id]
+    assert caller == task.freelancer, "Only freelancer can reject task"
+    refund_amount = task.reward.native
+    itxn.Payment(
+        sender=Global.current_application_address,
+        receiver=task.company.native,
+        amount=refund_amount,
+        fee=0,
+    ).submit()
+    del self.tasks[task_id]
 
