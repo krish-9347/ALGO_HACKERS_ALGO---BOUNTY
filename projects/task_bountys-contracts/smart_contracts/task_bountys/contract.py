@@ -163,3 +163,8 @@ def reject_task(self, task_id: arc4.UInt64, caller: arc4.Address) -> None:
     ).submit()
     del self.tasks[task_id]
 
+@arc4.abimethod
+def get_dispute_status(self, task_id: arc4.UInt64) -> DisputeData:
+    return self.disputes[task_id]
+
+
