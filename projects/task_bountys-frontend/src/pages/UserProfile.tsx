@@ -14,6 +14,11 @@ const UserProfile: React.FC = () => {
   const completedCount = taskState.claimedTasks.filter(t => t.status === 'completed').length;
   const voteCount = taskState.votes?.length || 0;
 
+  const totalEarnings = taskState.claimedTasks
+  .filter(t => t.status === 'completed')
+  .reduce((sum, t) => sum + (t.reward?.amount || 0), 0);
+
+
   const completionRate = claimedCount > 0
     ? Math.round((completedCount / claimedCount) * 100)
     : 0;
