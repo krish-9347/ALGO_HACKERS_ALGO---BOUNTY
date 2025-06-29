@@ -146,3 +146,8 @@ class TaskBountyContract(ARC4Contract):
             dispute.voters = new_voters
             self.disputes[task_id] = dispute
         return result.amount
+
+  @arc4.abimethod
+def task_exists(self, task_id: arc4.UInt64) -> arc4.Bool:
+    return arc4.Bool(task_id in self.tasks)
+
