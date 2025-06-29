@@ -201,6 +201,14 @@ def update_freelancer(self, task_id: arc4.UInt64, new_freelancer: arc4.Address, 
     assert caller == task.company, "Only company can update freelancer"
     self.tasks[task_id] = TaskData(task.company, new_freelancer, task.reward)
 
+@arc4.abimethod
+def get_freelancer_tasks(self, freelancer: arc4.Address) -> arc4.DynamicArray[arc4.UInt64]:
+    result = arc4.DynamicArray[arc4.UInt64]()
+    for task_id, task_data in self.tasks.items():
+        if task_data.freelancer == freelancer:
+            result.append(task_id)
+    return result
+
 
 
 
