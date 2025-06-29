@@ -190,27 +190,58 @@ const TaskDetail: React.FC = () => {
           </div>
         )}
         
-        {canClaim && (
-          <div className="flex justify-end">
-            <Button 
-              variant="primary" 
-              onClick={handleClaimTask}
-              isLoading={isSubmitting}
-            >
-              Claim This Task
-            </Button>
-          </div>
-        )}
-      </div>
+       {canClaim && (
+  <div className="flex justify-end">
+    <Button 
+      variant="primary" 
+      onClick={handleClaimTask}
+      isLoading={isSubmitting}
+    >
+      Claim This Task
+    </Button>
+  </div>
+)}
 
-      {showToast && (
-        <Toast
-          message="Task claimed successfully! Redirecting to My Tasks..."
-          type="success"
-          onClose={() => setShowToast(false)}
-        />
-      )}
-    </Layout>
+{showToast && (
+  <Toast
+    message="Task claimed successfully! Redirecting to My Tasks..."
+    type="success"
+    onClose={() => setShowToast(false)}
+  />
+)}
+
+/* 🧠 NEW DISCUSSION SECTION */
+<div className="mt-8">
+  <h2 className="text-lg font-semibold text-slate-900 mb-2">💬 Discussion</h2>
+  <ul className="mb-3 space-y-2">
+    {comments.length > 0 ? (
+      comments.map((comment, index) => (
+        <li key={index} className="bg-slate-100 p-2 rounded text-slate-800 text-sm">
+          {comment}
+        </li>
+      ))
+    ) : (
+      <p className="text-slate-500 text-sm">No comments yet. Be the first to ask a question!</p>
+    )}
+  </ul>
+  <textarea
+    className="w-full p-2 border border-slate-300 rounded text-sm"
+    rows={3}
+    placeholder="Ask a question or leave feedback..."
+    value={input}
+    onChange={(e) => setInput(e.target.value)}
+  />
+  <div className="mt-2 text-right">
+    <Button size="sm" variant="outline" onClick={postComment}>
+      Post Comment
+    </Button>
+  </div>
+</div>
+</Layout>
+
+
+
+
   );
 };
 
